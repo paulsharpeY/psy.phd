@@ -1,0 +1,31 @@
+Package: psy.phd
+Type: Package
+Title: Things that might be useful for a PhD in psychology
+Version: 0.1.0
+Author: Paul Sharpe
+Maintainer: <paul@miraclefish.com>
+Description: Things that might be useful for a PhD in psychology.
+License: MIT + file LICENSE
+Encoding: UTF-8
+LazyData: true
+Depends: R (>= 3.4.0)
+Imports:
+  BayesFactor,
+  dplyr,
+  effsize,
+  expfactory,
+  ggplot2,
+  kableExtra,
+  magrittr,
+  psych,
+  purrr,
+  rlang,
+  stats,
+  stringr,
+  tibble,
+  tidyr,
+  tidystats,
+  utils
+RoxygenNote: 6.1.1
+Suggests:
+  testthat (>= 1.0.2)
