@@ -1,5 +1,43 @@
 globalVariables(c('..scaled..'))
 
+#' Exclude RT outliers
+#'
+#' Exclude RT outliers.
+#'
+#' @param df Data frame Must contain columns p, rt
+#' @param fast Numeric Fast RTs
+#' @param slow Numeric Standar deviation of slow RTs
+#' @importFrom dplyr filter group_by ungroup
+#' @importFrom magrittr %>%
+#' @importFrom rlang .data
+#' @importFrom stats sd
+#' @export
+#' @return List of data frames
+# Excludes outliers from df.
+exclude_rt <- function(df, fast=50, slow=3) {
+  # Ben:
+  # 1.  If you are aggregating data before modelling it then you need to exclude
+  # them. I would keep obs > 50ms and < 3 SD (calculated within each __
+  # participant__). 200ms is too long a window to be excluding observations for
+  # this experiment. There are multiple components to an RT. Although an RT of <
+  # 100ms might be implausible for this experiment, I don’t think you can
+  # immediately conclude that there is no signal in all responses < 100ms.
+  # Multiple errors will summate but may also be correlated - I don’t think you
+  # gain enough by dropping the data to warrant it.
+  #
+  # 2. If you ware running a mixed-model within-participant then you can just
+  # include them. Mixed models perform "shrinkage" so that extreme values are
+  # down-weighted, and especially so if they are extreme within-participants.
+  # Provided you have enough good data they won’t have much effect.
+
+  g <- df %>% group_by(.data$p)
+  too_fast <- g %>% filter(.data$rt < fast) %>% ungroup()
+  too_slow <- g %>% filter(.data$rt > mean(.data$rt) + slow * sd(.data$rt)) %>% ungroup()
+  ok <- g %>% filter(.data$rt > fast & .data$rt < mean(.data$rt) + slow * sd(.data$rt)) %>% ungroup()
+
+  list(ok = ok, too_fast = too_fast, too_slow = too_slow)
+}
+
 #' Process demographics survey
 #'
 #' Process demographics survey.
