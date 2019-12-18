@@ -57,7 +57,7 @@ process_demographics_survey <- function(survey, participants, by = 'token', extr
 #' @importFrom rlang .data
 #' @export
 #' @return List
-#' 
+#'
 get_participants <- function(df, c) {
   p <-
     df %>%
@@ -67,7 +67,7 @@ get_participants <- function(df, c) {
     unique()
   list('participants' = p, 'n' = count(p))
 }
-  
+
 ### Posner
 
 #' Process Posner task data files
@@ -110,7 +110,7 @@ process_posner <- function(task_file, p) {
 #' @importFrom rlang .data
 #' @export
 #' @return Data frame
-#' 
+#'
 sex_totals <- function(df) {
   df %>%
     group_by(.data$sex) %>%
@@ -128,7 +128,7 @@ sex_totals <- function(df) {
 #' @importFrom stats sd
 #' @export
 #' @return Data frame
-#' 
+#'
 age_summary <- function(df) {
   df %>%
     summarise(mean_age = round(mean(.data$age), 2), sd_age = round(sd(.data$age), 2))
@@ -145,7 +145,7 @@ age_summary <- function(df) {
 #' @importFrom stats sd
 #' @export
 #' @return Data frame
-#' 
+#'
 age_summary_by_group <- function(df) {
   df %>%
     group_by(.data$condition) %>%
@@ -164,7 +164,7 @@ age_summary_by_group <- function(df) {
 #' @importFrom magrittr %>%
 #' @importFrom rlang .data
 #' @return Data frame
-#' 
+#'
 accuracy <- function(x, y) {
   x %>% summarise_all(mean) # on a logical vector calculates % TRUE (correct)
 }
@@ -181,7 +181,7 @@ accuracy <- function(x, y) {
 #' @importFrom rlang .data
 #' @export
 #' @return Data frame
-#' 
+#'
 rsvp_accuracy <- function(rsvp, participants, combined=FALSE) {
   if (! combined) {
     df <- rsvp %>%
@@ -192,15 +192,14 @@ rsvp_accuracy <- function(rsvp, participants, combined=FALSE) {
       select(.data$study, .data$p, .data$lag, .data$t1_correct, .data$t2.t1) %>%
       group_by(.data$study, .data$p, .data$lag)
   }
-  
+
   # common to uncombined/combined
   df <- df %>%
     group_modify(accuracy) %>%
-#    do(.data$., accuracy(.data$.)) %>%
     ungroup() %>%
     mutate(lag = as.factor(.data$lag), t1_accuracy = .data$t1_correct * 100,
            t2_accuracy = .data$t2.t1 * 100)
-  
+
   if (! combined) {
     df <- df %>%
       left_join(participants, by=c('p')) %>%
@@ -213,11 +212,11 @@ rsvp_accuracy <- function(rsvp, participants, combined=FALSE) {
       select(.data$study, .data$p, .data$condition, .data$lag, .data$t1_accuracy,
              .data$t2_accuracy)
   }
-  
-  as.data.frame(df) # mute later BayesFactor conversion from tibble to data frame 
+
+  as.data.frame(df) # mute later BayesFactor conversion from tibble to data frame
 }
 
-# 
+#
 #' T1 accuracy by participant
 #'
 #' T1 accuracy by participant.
@@ -228,7 +227,7 @@ rsvp_accuracy <- function(rsvp, participants, combined=FALSE) {
 #' @importFrom rlang .data
 #' @export
 #' @return Data frame
-#' 
+#'
 t1_accuracy <- function(rsvp_accuracy) {
   rsvp_accuracy %>%
     select(.data$p, .data$condition, .data$t1_accuracy) %>%
@@ -249,7 +248,7 @@ t1_accuracy <- function(rsvp_accuracy) {
 #' @importFrom stats sd
 #' @export
 #' @return Data frame
-#' 
+#'
 ab_descriptives <- function(x, y) {
   df <- x %>%
     rename(ab = .data$`blink`) %>%
@@ -276,7 +275,7 @@ ab_descriptives <- function(x, y) {
 #' @importFrom tibble tibble
 #' @export
 #' @return Data frame
-#' 
+#'
 ab_t_test <- function(x, y, lag1=3, lag2=8) {
   df <- x %>%
     filter(.data$lag %in% c(lag1,lag2))
@@ -301,7 +300,7 @@ ab_t_test <- function(x, y, lag1=3, lag2=8) {
 #' @importFrom tibble tibble
 #' @export
 #' @return Data frame
-#' 
+#'
 blink_contrasts <- function(df) {
   d <- df %>% filter(.data$condition %in% c('fam','omm'))
   # TECH_DEBT: Best I could come up with for returning objects in a data frame i.e. wrap in list()s
@@ -342,7 +341,7 @@ blink_contrasts <- function(df) {
 #' @importFrom tidyr spread
 #' @export
 #' @return Data frame
-#' 
+#'
 blink <- function(rsvp_accuracy_3_8) {
   rsvp_accuracy_3_8 %>%
    select(-t1_accuracy) %>%
@@ -363,78 +362,47 @@ blink <- function(rsvp_accuracy_3_8) {
 #' @importFrom rlang .data
 #' @export
 #' @return Data frame
-#' 
+#'
 rsvp_3_8_plot <- function(rsvp_accuracy) {
   rsvp_accuracy_3_8 <- rsvp_accuracy %>%
     filter(.data$lag %in% c(3,8))
-  
-  rsvp_accuracy_3_8 %>% 
-    ggplot(aes(.data$lag, .data$t2_accuracy, group=.data$condition, color=.data$condition)) + 
-    stat_summary(geom="pointrange", fun.data=mean_cl_boot, position=position_dodge(width=.1)) + 
+
+  rsvp_accuracy_3_8 %>%
+    ggplot(aes(.data$lag, .data$t2_accuracy, group=.data$condition, color=.data$condition)) +
+    stat_summary(geom="pointrange", fun.data=mean_cl_boot, position=position_dodge(width=.1)) +
     stat_summary(geom="line", fun.data=mean_cl_boot, position=position_dodge(width=.1), size=1.2) +
     geom_hline(yintercept = 0) +
     ylab("T2|T1 accuracy (% with 95% bootstrap CI)") + xlab("Lag") +
     theme(text = element_text(size=22))
 }
 
-#' Report collapsed t.
-#'
-#' Report collapsed t.
-#'
-#' @param freq Frequentist ANOVA object
-#' @param bayes Bayesian ANOVA object
-#' @importFrom tidystats add_stats report
-#' @export
-#' @return String
-#' 
-# DEBT: refactor into generic reporting functions
-report_collapsed_t <- function(freq, bayes) {
-  bayes <- as.data.frame(bayes)
-  results <- list()
-  results <- add_stats(results, freq, identifier = 'freq')
-  bf    <- bayes[1,1]
-  if (bf > 100) { bf <- round(bf,0) } else { bf <- round(bf,3) }
-  s     <- report('freq', results = results) # tidy frequentist string
-  s     <- gsub(", 95.*$",'',s)              # remove CI
-  paste0(s,', *BF* = ', bf)
-}
+# DEPRECATED: written against tidystats 0.3 API which changed radically in 0.4
+# report_collapsed_t <- function(freq, bayes) {
+#   bayes <- as.data.frame(bayes)
+#   results <- list()
+#   results <- add_stats(results, freq, identifier = 'freq')
+#   bf    <- bayes[1,1]
+#   if (bf > 100) { bf <- round(bf,0) } else { bf <- round(bf,3) }
+#   s     <- report('freq', results = results) # tidy frequentist string
+#   s     <- gsub(", 95.*$",'',s)              # remove CI
+#   paste0(s,', *BF* = ', bf)
+# }
 
-#' Report t.
-#'
-#' Report t.
-#'
-#' @param df Data frame
-#' @param results Something
-#' @param c String condition
-#' @importFrom tidystats report
-#' @export
-#' @return String
-#'
-report_t <- function(df, results, c) {
-  bayes <- as.data.frame(df[df[, 'condition'] == c,'bayes_t'][[1]])
-  bf    <- bayes[1,1]
-  if (bf > 100) { bf <- round(bf,0) } else { bf <- round(bf,3) }
-  s     <- report(c, results = results) # tidy frequentist string
-  s     <- gsub(", 95.*$",'',s)         # remove CI
-  paste0(s,', *BF* = ', bf)
-}
+# DEPRECATED: written against tidystats 0.3 API which changed radically in 0.4
+# report_t <- function(df, results, c) {
+#   bayes <- as.data.frame(df[df[, 'condition'] == c,'bayes_t'][[1]])
+#   bf    <- bayes[1,1]
+#   if (bf > 100) { bf <- round(bf,0) } else { bf <- round(bf,3) }
+#   s     <- report(c, results = results) # tidy frequentist string
+#   s     <- gsub(", 95.*$",'',s)         # remove CI
+#   paste0(s,', *BF* = ', bf)
+# }
 
-#' Report f.
-#'
-#' Report f.
-#'
-#' @param df_n Data frame Numerator degrees of freedom 
-#' @param df_d Data frame Denominator degrees of freedom
-#' @param f Something f value
-#' @param p String p value
-#' @importFrom tidystats report
-#' @export
-#' @return String
-#'
-report_f <- function(df_n, df_d, f, p) {
-  p <- if(p < .001) '< .001' else paste0('= ',round(p,2))
-  paste0('*F*(', as.integer(df_n), ',', round(df_d,2), ') = ', round(f, 2), ', *p* ', p)
-}
+# DEPRECATED: written against tidystats 0.3 API which changed radically in 0.4
+# report_f <- function(df_n, df_d, f, p) {
+#   p <- if(p < .001) '< .001' else paste0('= ',round(p,2))
+#   paste0('*F*(', as.integer(df_n), ',', round(df_d,2), ') = ', round(f, 2), ', *p* ', p)
+# }
 
 # t = t.test() object, m = mean
 sem <- function(t, m) {
@@ -453,7 +421,7 @@ sem <- function(t, m) {
 #' @importFrom rlang .data
 #' @export
 #' @return Data frame
-#' 
+#'
 aladins <- function(conditions, t_df, mean_diff_df) {
   df <- data.frame('condition' = conditions, meandiff = 0, sem = 0, df = 0)
   for (c in conditions) {
@@ -503,7 +471,7 @@ apa_bayes_t <- function(bayes) {
 #' @importFrom stats t.test
 #' @export
 #' @return Data frame
-#' 
+#'
 collapse_meditation <- function(df, dir, prefix) {
   collapsed <- df %>%
     group_by(.data$p, .data$condition) %>%
@@ -515,24 +483,24 @@ collapse_meditation <- function(df, dir, prefix) {
 
   # T2|T1
   freq_t <- t.test(mean_t2_accuracy ~ condition, data = collapsed, paired=FALSE)
-  bayes_t = ttestBF(x = collapsed$mean_t2_accuracy[collapsed$condition == 'meditation'],
+  bayes_t <- ttestBF(x = collapsed$mean_t2_accuracy[collapsed$condition == 'meditation'],
                     y = collapsed$mean_t2_accuracy[collapsed$condition == 'control'],
                     paired = FALSE)
   save_rds(freq_t, dir, paste0(prefix,'_t2_med_control_freq_t'))
   save_rds(bayes_t, dir, paste0(prefix,'_t2_med_control_bayes_t'))
   t2_d <- cohen.d(collapsed$mean_t2_accuracy ~ collapsed$condition)
   save_rds(t2_d, dir, paste0(prefix,'_t2_med_control_d'))
-  
+
   # T1
   freq_t <- t.test(mean_t1_accuracy ~ condition, data = collapsed, paired=FALSE)
-  bayes_t = ttestBF(x = collapsed$mean_t1_accuracy[collapsed$condition == 'meditation'],
+  bayes_t <- ttestBF(x = collapsed$mean_t1_accuracy[collapsed$condition == 'meditation'],
                     y = collapsed$mean_t1_accuracy[collapsed$condition == 'control'],
                     paired = FALSE)
   save_rds(freq_t, dir, paste0(prefix,'_t1_med_control_freq_t'))
   save_rds(bayes_t, dir, paste0(prefix,'_t1_med_control_bayes_t'))
   t1_d <- cohen.d(collapsed$mean_t1_accuracy ~ collapsed$condition)
   save_rds(t1_d, dir, paste0(prefix,'_t1_med_control_d'))
-  
+
   return(collapsed)
 }
 
@@ -565,13 +533,13 @@ save_rds <- function(object, dir, filename) {
 #' @importFrom stringr str_to_upper
 #' @export
 #' @return Data frame
-#' 
+#'
 ant_plots <- function(df, condition, xlab) {
   means <- df %>%
-    group_by(.data$condition) %>% 
+    group_by(.data$condition) %>%
     summarise(mean = mean(.data$rt)) %>%
     mutate(means = paste("Mean", str_to_upper(.data$condition), sep = "."))
-  
+
   den <- df %>%
     ggplot(aes(.data$rt, colour=.data$condition)) + geom_density(aes(y=..scaled..)) +
     geom_vline(aes(xintercept = mean, color = condition, linetype = means), data = means) +
@@ -579,10 +547,10 @@ ant_plots <- function(df, condition, xlab) {
     ylab("Scaled density")
   qq_fam     <- qq_plot(df, condition[1], xlab)
   qq_control <- qq_plot(df, condition[2], xlab)
-  
+
   box_plot <- df %>% ggplot(aes(x = .data$condition, y = .data$rt)) +
     geom_boxplot(aes(colour=.data$condition))
-  
+
   return(list(boxplot = box_plot, qq_fam = qq_fam, qq_control = qq_control, density = den))
 }
 
@@ -599,7 +567,7 @@ ant_plots <- function(df, condition, xlab) {
 #' @importFrom rlang .data
 #' @export
 #' @return Data frame
-#' 
+#'
 qq_plot <- function(df, c, xlab) {
   df %>%
     filter(.data$condition == c) %>%
@@ -622,15 +590,15 @@ qq_plot <- function(df, c, xlab) {
 #' @importFrom tidyr pivot_wider
 #' @export
 #' @return Data frame
-#' 
+#'
 normal <- function(x) {
   print(shapiro.test(x)) # requires 3-5000 non-NA values
   # ties should not be present for the Kolmogorov-Smirnov test
   # https://stats.stackexchange.com/questions/232011/ties-should-not-be-present-in-one-sample-kolmgorov-smirnov-test-in-r/232067
   print(ks.test(x, 'pnorm', mean=mean(x), sd=sd(x)))
-  
+
   stats <- bind_cols(describe(x), var = var(x))
-  
+
   # calculate z-score for skew and kurtosis
   sk <- spssSkewKurtosis(x)
   # https://blog.az.sg/posts/map-and-walk/
@@ -641,7 +609,7 @@ normal <- function(x) {
         mutate(z = current$estimate / current$se)
     }) %>%
     pivot_wider(names_from = .data$stat, values_from = c(.data$estimate, .data$se, .data$z))
-  
+
   bind_cols(stats, extra) %>%
     round(2) %>%
     mutate(
@@ -665,7 +633,7 @@ normal <- function(x) {
 #
 #' Reference: pp 451-452 of
 #' http://support.spss.com/ProductsExt/SPSS/Documentation/Manuals/16.0/SPSS 16.0 Algorithms.pdf
-# 
+#
 #' See also: Suggestion for Using Powerful and Informative Tests of Normality,
 #' Ralph B. D'Agostino, Albert Belanger, Ralph B. D'Agostino, Jr.,
 #' The American Statistician, Vol. 44, No. 4 (Nov., 1990), pp. 316-321
@@ -674,17 +642,17 @@ normal <- function(x) {
 #' psych::describe(), which doesn't give SE of skew and kurtosis, which
 #' you need to test for normality using a z-score
 spssSkewKurtosis=function(x) {
-  w=length(x)
-  m1=mean(x)
-  m2=sum((x-m1)^2)
-  m3=sum((x-m1)^3)
-  m4=sum((x-m1)^4)
-  s1=sd(x)
-  skew=w*m3/(w-1)/(w-2)/s1^3
-  sdskew=sqrt( 6*w*(w-1) / ((w-2)*(w+1)*(w+3)) )
-  kurtosis=(w*(w+1)*m4 - 3*m2^2*(w-1)) / ((w-1)*(w-2)*(w-3)*s1^4)
-  sdkurtosis=sqrt( 4*(w^2-1) * sdskew^2 / ((w-3)*(w+5)) )
-  df <- data.frame(stat = 'skew', estimate = skew, se = sdskew)
-  df <- add_row(df, stat = 'kurtosis', estimate = kurtosis, se = sdkurtosis)
+  w          <- length(x)
+  m1         <- mean(x)
+  m2         <- sum((x-m1)^2)
+  m3         <- sum((x-m1)^3)
+  m4         <- sum((x-m1)^4)
+  s1         <- sd(x)
+  skew       <- w*m3/(w-1)/(w-2)/s1^3
+  sdskew     <- sqrt( 6*w*(w-1) / ((w-2)*(w+1)*(w+3)) )
+  kurtosis   <- (w*(w+1)*m4 - 3*m2^2*(w-1)) / ((w-1)*(w-2)*(w-3)*s1^4)
+  sdkurtosis <- sqrt( 4*(w^2-1) * sdskew^2 / ((w-3)*(w+5)) )
+  df         <- data.frame(stat = 'skew', estimate = skew, se = sdskew)
+  df         <- add_row(df, stat = 'kurtosis', estimate = kurtosis, se = sdkurtosis)
   return(df)
 }

@@ -24,7 +24,6 @@ Imports:
   stringr,
   tibble,
   tidyr,
-  tidystats,
   utils
 RoxygenNote: 6.1.1
 Suggests:
