@@ -4,16 +4,19 @@ globalVariables(c('..scaled..'))
 #'
 #' Exclude RT outliers.
 #'
-#' @param df Data frame Must contain columns p, rt
-#' @param fast Numeric Fast RTs
-#' @param slow Numeric Standar deviation of slow RTs
+#' Returns a list of data frames with keys, 'ok', 'too_fast', and 'too_slow',
+#' which contain rows from df where the RT met the inclusion critera, was too
+#' fast, or too slow respectively.
+#'
+#' @param df data frame Must contain columns p, rt
+#' @param fast numeric Fast RTs
+#' @param slow numeric Standard deviation of slow RTs
 #' @importFrom dplyr filter group_by ungroup
 #' @importFrom magrittr %>%
 #' @importFrom rlang .data
 #' @importFrom stats sd
 #' @export
 #' @return List of data frames
-# Excludes outliers from df.
 exclude_rt <- function(df, fast=50, slow=3) {
   # Ben:
   # 1.  If you are aggregating data before modelling it then you need to exclude

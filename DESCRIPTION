@@ -1,7 +1,7 @@
 Package: psy.phd
 Type: Package
 Title: Things that might be useful for a PhD in psychology
-Version: 0.1.0
+Version: 0.2.0
 Author: Paul Sharpe
 Maintainer: <paul@miraclefish.com>
 Description: Things that might be useful for a PhD in psychology.
