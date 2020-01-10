@@ -33,10 +33,9 @@ exclude_rt <- function(df, fast=50, slow=3) {
   # down-weighted, and especially so if they are extreme within-participants.
   # Provided you have enough good data they won’t have much effect.
 
-  g <- df %>% group_by(.data$p)
-  too_fast <- g %>% filter(.data$rt < fast) %>% ungroup()
-  too_slow <- g %>% filter(.data$rt > mean(.data$rt) + slow * sd(.data$rt)) %>% ungroup()
-  ok <- g %>% filter(.data$rt > fast & .data$rt < mean(.data$rt) + slow * sd(.data$rt)) %>% ungroup()
+  too_fast <- df %>% filter(.data$rt < fast)
+  too_slow <- df %>% filter(.data$rt > mean(.data$rt) + slow * sd(.data$rt))
+  ok       <- df %>% filter(.data$rt > fast & .data$rt < mean(.data$rt) + slow * sd(.data$rt))
 
   list(ok = ok, too_fast = too_fast, too_slow = too_slow)
 }
