@@ -496,11 +496,13 @@ apa_bayes_t <- function(bayes) {
   paste0('$BF$ = ', prettyNum(bf, big.mark = ',', trim=TRUE))
 }
 
-#' FAM+OMM vs. control
+#' Save frequentist and Baysian t-tests and Cohen's d for T1 and T2|T1
 #'
-#' FAM+OMM vs. control.
+#' Save frequentist and Baysian t-tests and Cohen's d for T1 and T2|T1.
 #'
 #' @param df Data frame
+#' @param group1 String
+#' @param group2 String
 #' @param dir String Directory
 #' @param prefix String
 #' @importFrom BayesFactor ttestBF
@@ -512,36 +514,34 @@ apa_bayes_t <- function(bayes) {
 #' @export
 #' @return Data frame
 #'
-collapse_meditation <- function(df, dir, prefix) {
-  collapsed <- df %>%
+rsvp_by_group <- function(df, group1, group2, dir, prefix) {
+  df <- df %>%
     group_by(.data$p, .data$condition) %>%
     summarise(mean_t2_accuracy = mean(.data$t2_accuracy),
               mean_t1_accuracy = mean(.data$t1_accuracy)) %>%
-    ungroup %>%
-    mutate(condition = ifelse(.data$condition == 'omm' | .data$condition == 'fam', 'meditation', 'control')) %>%
-    mutate(condition = as.factor(.data$condition))
+    ungroup()
 
   # T2|T1
-  freq_t <- t.test(mean_t2_accuracy ~ condition, data = collapsed, paired=FALSE)
-  bayes_t <- ttestBF(x = collapsed$mean_t2_accuracy[collapsed$condition == 'meditation'],
-                    y = collapsed$mean_t2_accuracy[collapsed$condition == 'control'],
+  freq_t <- t.test(mean_t2_accuracy ~ condition, data = df, paired=FALSE)
+  bayes_t <- ttestBF(x = df$mean_t2_accuracy[df$condition == group1],
+                     y = df$mean_t2_accuracy[df$condition == group2],
                     paired = FALSE)
   save_rds(freq_t, dir, paste0(prefix,'_t2_med_control_freq_t'))
   save_rds(bayes_t, dir, paste0(prefix,'_t2_med_control_bayes_t'))
-  t2_d <- cohen.d(collapsed$mean_t2_accuracy ~ collapsed$condition)
+  t2_d <- cohen.d(df$mean_t2_accuracy ~ df$condition)
   save_rds(t2_d, dir, paste0(prefix,'_t2_med_control_d'))
 
   # T1
-  freq_t <- t.test(mean_t1_accuracy ~ condition, data = collapsed, paired=FALSE)
-  bayes_t <- ttestBF(x = collapsed$mean_t1_accuracy[collapsed$condition == 'meditation'],
-                    y = collapsed$mean_t1_accuracy[collapsed$condition == 'control'],
+  freq_t <- t.test(mean_t1_accuracy ~ condition, data = df, paired=FALSE)
+  bayes_t <- ttestBF(x = df$mean_t1_accuracy[df$condition == group1],
+                     y = df$mean_t1_accuracy[df$condition == group2],
                     paired = FALSE)
   save_rds(freq_t, dir, paste0(prefix,'_t1_med_control_freq_t'))
   save_rds(bayes_t, dir, paste0(prefix,'_t1_med_control_bayes_t'))
-  t1_d <- cohen.d(collapsed$mean_t1_accuracy ~ collapsed$condition)
+  t1_d <- cohen.d(df$mean_t1_accuracy ~ df$condition)
   save_rds(t1_d, dir, paste0(prefix,'_t1_med_control_d'))
 
-  return(collapsed)
+  return(df)
 }
 
 #' Save data as RDS object.
