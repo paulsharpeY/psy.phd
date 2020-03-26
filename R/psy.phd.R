@@ -332,6 +332,7 @@ ab_t_test <- function(x, y, lag1=3, lag2=8) {
 #' Attentional blink contrast t-tests.
 #'
 #' Does _not_ correct for multiple comparisons.
+#' t-tests are are for _paired_ samples
 #'
 #' @param df Data frame
 #' @importFrom BayesFactor ttestBF
@@ -349,9 +350,9 @@ blink_contrasts <- function(df) {
   fo <- tibble(
     condition = 'fam-omm',
     t = list(t = t.test(blink ~ condition, data = d, paired=TRUE)),
-         bayes_t = list(bf = ttestBF(x = d$blink[d$condition == 'fam'],
-                                     y = d$blink[d$condition == 'omm'],
-                                     paired = TRUE))
+           bayes_t = list(bf = ttestBF(x = d$blink[d$condition == 'fam'],
+                                       y = d$blink[d$condition == 'omm'],
+                                       paired = TRUE))
   )
   d <- df %>% filter(.data$condition %in% c('fam','control'))
   fc <- tibble(
