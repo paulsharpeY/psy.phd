@@ -331,6 +331,8 @@ ab_t_test <- function(x, y, lag1=3, lag2=8) {
 #'
 #' Attentional blink contrast t-tests.
 #'
+#' Does _not_ correct for multiple comparisons.
+#'
 #' @param df Data frame
 #' @importFrom BayesFactor ttestBF
 #' @importFrom dplyr bind_rows filter
