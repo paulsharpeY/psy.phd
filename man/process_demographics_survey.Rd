@@ -4,8 +4,7 @@
 \alias{process_demographics_survey}
 \title{Process demographics survey}
 \usage{
-process_demographics_survey(survey, participants, by = "token",
-  extra = F)
+process_demographics_survey(survey, participants, by = "token", extra = F)
 }
 \arguments{
 \item{survey}{Data frame containing demographics survey results pre-processed by \code{expfactory::process_expfactory_survey}}

@@ -15,3 +15,7 @@ Data frame
 \description{
 Attentional blink contrast t-tests.
 }
+\details{
+Does _not_ correct for multiple comparisons.
+t-tests are are for _paired_ samples
+}

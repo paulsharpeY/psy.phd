@@ -699,3 +699,96 @@ spssSkewKurtosis=function(x) {
   df         <- add_row(df, stat = 'kurtosis', estimate = kurtosis, se = sdkurtosis)
   return(df)
 }
+
+### ANT
+
+#' ANT descriptives
+#'
+#' ANT descriptives by score.
+#'
+#' @param scores Data frame
+#' @importFrom dplyr arrange desc group_by mutate recode_factor summarise
+#' @importFrom magrittr %>%
+#' @importFrom rlang .data
+#' @importFrom tidyr pivot_longer pivot_wider unite
+#' @export
+#' @return Data frame
+#'
+ant_descriptives <- function(scores) {
+  df <- scores %>%
+    group_by(.data$t, .data$group, .data$var) %>%
+    summarise(mean_rt=sprintf("%.2f", round(mean(.data$rt), 2)),
+              sd_rt=sprintf("%.2f", round(sd(.data$rt), 2))) %>%
+    ungroup() %>%
+    pivot_wider(names_from = var, values_from = c(.data$mean_rt, .data$sd_rt)) %>%
+    unite('alerting', .data$mean_rt_alerting, .data$sd_rt_alerting, sep=' (') %>%
+    unite('orienting', .data$mean_rt_orienting, .data$sd_rt_orienting, sep=' (') %>%
+    unite('conflict', .data$mean_rt_conflict, .data$sd_rt_conflict, sep=' (') %>%
+    mutate(alerting = paste0(.data$alerting, ')'), orienting = paste0(.data$orienting, ')'),
+           conflict = paste0(.data$conflict, ')'))
+
+  df$t <- recode_factor(df$t, `1` = 'Pre', `2` = 'Post')
+  df %>%  pivot_longer(cols = c(.data$alerting, .data$orienting, .data$conflict),
+                       names_to = 'score', values_to = 'value') %>%
+    pivot_wider(names_from = c(t), values_from = .data$value) %>%
+    arrange(desc(.data$group)) %>%
+    mutate(score = stringr::str_to_title(score))
+}
+
+#' ANT descriptives by cue type
+#'
+#' ANT descriptives by cue type.
+#'
+#' @param df Data frame
+#' @importFrom dplyr arrange desc group_by mutate summarise
+#' @importFrom magrittr %>%
+#' @importFrom rlang .data
+#' @importFrom tidyr pivot_longer pivot_wider unite
+#' @export
+#' @return Data frame
+#'
+ant_descriptives_by_cue_type <- function(df) {
+  df %>%
+    group_by(.data$t, .data$group, .data$cue, .data$flanker_type) %>%
+    summarise(mean_rt=round(mean(.data$rt)), sd_rt=round(sd(.data$rt))) %>%
+    ungroup() %>%
+    pivot_wider(names_from = .data$flanker_type, values_from = c(.data$mean_rt, .data$sd_rt)) %>%
+    unite('congruent', .data$mean_rt_congruent, .data$sd_rt_congruent, sep=' (') %>%
+    unite('incongruent', .data$mean_rt_incongruent, .data$sd_rt_incongruent, sep=' (') %>%
+    unite('neutral', .data$mean_rt_neutral, .data$sd_rt_neutral, sep=' (') %>%
+    mutate(congruent = paste0(.data$congruent, ')'), incongruent = paste0(.data$incongruent, ')'),
+           neutral = paste0(.data$neutral, ')')) %>%
+    pivot_longer(cols = c(.data$congruent, .data$incongruent, .data$neutral), names_to = 'target', values_to = 'value') %>%
+    pivot_wider(names_from = c(.data$t, .data$cue), values_from = .data$value) %>%
+    arrange(desc(.data$group)) %>%
+    mutate(target = sub("(.)", "\\U\\1", .data$target, perl=TRUE))
+}
+
+#' Compute ANT scores for alerting, orienting and conflict
+#'
+#' Compute ANT scores for alerting, orienting and conflict.
+#'
+#' @param df Data frame
+#' @importFrom dplyr group_by left_join mutate select
+#' @importFrom magrittr %>%
+#' @importFrom rlang .data
+#' @importFrom tidyr pivot_longer pivot_wider unite
+#' @export
+#' @return Data frame
+#'
+ant_scores <- function(df) {
+  alerting_orienting <- df %>%
+    pivot_wider(id_cols = c(.data$p,.data$group,.data$t), names_from = .data$cue,
+                values_from = .data$rt, values_fn = list(rt = mean)) %>%
+    mutate(alerting = .data$nocue - .data$double, orienting = .data$center - .data$spatial) %>%
+    select(.data$p, .data$group, .data$t, .data$alerting, .data$orienting)
+  conflict <- df %>%
+    pivot_wider(id_cols = c(.data$p,.data$group,.data$t),
+                names_from = .data$flanker_type, values_from = .data$rt,
+                values_fn = list(rt = mean)) %>%
+    mutate(conflict = .data$incongruent - .data$congruent) %>%
+    select(.data$p, .data$group, .data$t, .data$conflict)
+  left_join(alerting_orienting, conflict, by=c('p', 'group', 't')) %>%
+    pivot_longer(cols = c(.data$alerting, .data$orienting, .data$conflict),
+                  names_to = 'var', values_to = 'rt')
+}
