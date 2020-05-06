@@ -732,7 +732,7 @@ ant_descriptives <- function(scores) {
                        names_to = 'score', values_to = 'value') %>%
     pivot_wider(names_from = c(t), values_from = .data$value) %>%
     arrange(desc(.data$group)) %>%
-    mutate(score = stringr::str_to_title(score))
+    mutate(score = stringr::str_to_title(.data$score))
 }
 
 #' ANT descriptives by cue type
@@ -770,6 +770,7 @@ ant_descriptives_by_cue_type <- function(df) {
 #'
 #' @param df Data frame
 #' @importFrom dplyr group_by left_join mutate select
+#' @importFrom forcats fct_relevel
 #' @importFrom magrittr %>%
 #' @importFrom rlang .data
 #' @importFrom tidyr pivot_longer pivot_wider unite
@@ -788,7 +789,11 @@ ant_scores <- function(df) {
                 values_fn = list(rt = mean)) %>%
     mutate(conflict = .data$incongruent - .data$congruent) %>%
     select(.data$p, .data$group, .data$t, .data$conflict)
-  left_join(alerting_orienting, conflict, by=c('p', 'group', 't')) %>%
+  result <- left_join(alerting_orienting, conflict, by=c('p', 'group', 't')) %>%
     pivot_longer(cols = c(.data$alerting, .data$orienting, .data$conflict),
-                  names_to = 'var', values_to = 'rt')
+                  names_to = 'var', values_to = 'rt') %>%
+    mutate(var = factor(var))
+  # arrange for plot facets to be LtR: Alerting, Orienting, Conflict
+  result$var <- fct_relevel(result$var, 'conflict', after = Inf)
+  return(result)
 }

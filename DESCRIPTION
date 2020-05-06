@@ -14,6 +14,7 @@ Imports:
   dplyr,
   effsize,
   expfactory,
+  forcats,
   ggplot2,
   kableExtra,
   magrittr,
