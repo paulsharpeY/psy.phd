@@ -495,8 +495,8 @@ aladins <- function(conditions, t_df, mean_diff_df) {
 apa_bayes_t <- function(bayes) {
   bayes <- as.data.frame(bayes)
   bf    <- bayes[1,1]
-  if (bf > 100) { bf <- round(bf,0) } else { bf <- round(bf,2) }
-  paste0('$BF$ = ', prettyNum(bf, big.mark = ',', trim=TRUE))
+  if (bf > 100) { bf <- round(bf,0) } else { bf <- sprintf("%.2f", round(bf,2)) }
+  paste0('$BF$ = ', prettyNum(bf, big.mark = ',', trim = TRUE))
 }
 
 #' Save frequentist and Baysian t-tests and Cohen's d for T1 and T2|T1
