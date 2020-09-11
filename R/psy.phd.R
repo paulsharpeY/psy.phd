@@ -1,5 +1,95 @@
 globalVariables(c('..scaled..'))
 
+#' Set effect size for a study
+#'
+#' Set effect size for a study.
+#'
+#' Calculates mean difference and 95% confidence interval.
+#'
+#' @param id identifier for result
+#' @param study data frame with publication column
+#' @param m1 mean for group 1
+#' @param m2 mean for group 2
+#' @param sd standard deviation
+#' @param n1 n in group 1
+#' @param n2 n in group 2
+#' @param design description of study design
+#' @importFrom rlang .data
+#' @export
+#' @return tibble
+set_effect <- function(id, study, m1, m2, sd, n1, n2, design) {
+  df <- tibble(
+    id     = id,
+    mean1  = m1,
+    mean2  = m2,
+    study  = study$publication,
+    d      = d(m1, m2, sd), ci = 0, l = 0, u = 0,
+    design = factor(design)
+  )
+  df <- df %>% mutate(ci = d_ci95(d, n1, n2)) %>% mutate(l = d - .data$ci, u = d + .data$ci)
+}
+
+#' Convert 95% confidence interval to standard error
+#'
+#' Convert 95% confidence interval to standard error
+#'
+#' https://training.cochrane.org/handbook/current/chapter-06#section-6-3-1
+#'
+#' @param u upper interval
+#' @param l lower interval
+#' @export
+#' @return numeric
+ci95_to_se <- function(u, l) { (u - l) / 3.92 }
+
+#' 95% confidence interval for Cohen's d (Rosnow & Rosenthal, 2009)
+#'
+#' 95% confidence interval for Cohen's d (Rosnow & Rosenthal, 2009)
+#'
+#' 95% confidence interval for Cohen's d (Rosnow & Rosenthal, 2009)
+#'
+#' @param d Cohen's d
+#' @param n1 n in group1
+#' @param n2 n in group2
+#' @export
+#' @return numeric
+d_ci95 <- function(d, n1, n2) {
+  df <- n1 + n2 - 2
+  sqrt((((n1 + n2) / (n1 * n2)) + (d^2 / (2 * df))) * ((n1 + n2) / df))
+}
+
+#' Mean difference
+#'
+#' Mean difference
+#'
+#' Returns (m1 - m2) / sd. If sd is the pooled standard deviation, then this is Hedge's g.
+#'
+#' @param m1 mean 1
+#' @param m2 mean 2
+#' @param sd standard deviation
+#' @export
+#' @return numeric
+d <- function(m1, m2, sd) {
+  # https://www.statisticshowto.com/hedges-g/
+  (m1 - m2) / sd
+}
+
+#' Pooled standard deviation
+#'
+#' Pooled standard deviation
+#'
+#' Returns the pooled standard deviation for two groups with same or different n.
+#'
+#' @param n1 n for group 1
+#' @param n2 n for group 2
+#' @param sd1 standard deviation for group 1
+#' @param sd2 standard deviation for group 2
+#' @export
+#' @return numeric
+sd_pooled <- function(n1, n2, sd1, sd2) {
+  # https://www.statisticshowto.com/pooled-standard-deviation/
+  sqrt(((n1 - 1) * sd1^2 + (n2 - 1) * sd2^2) / (n1 + n2 - 2))
+}
+
 #' Exclude RT outliers
 #'
 #' Exclude RT outliers.
