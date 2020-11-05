@@ -614,14 +614,39 @@ format_bf <- function(bf) {
 #' @export
 #' @return tibble
 #'
-extract_aov <- function(aov) {
+extract_aov <- function(aov, effect='1way') {
   aov <- summary(aov)
-  tibble(
-    df_n = aov[[1]]$Df[1],
-    df_d = aov [[1]]$Df[2],
-    f    = sprintf("%.2f", aov[[1]]$'F value'[[1]]),
-    p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", aov[[1]]$'Pr(>F)'[[1]]))
-  )
+
+  # 2 x 2 ANOVA
+  if (effect == 'A') {        # A (first main effect)
+    tibble(
+      df_n = aov[[1]][[1]]$Df[1],
+      df_d = aov [[1]][[1]]$Df[2],
+      f    = sprintf("%.2f", aov[[1]][[1]]$'F value'[[1]]),
+      p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", aov[[1]][[1]]$'Pr(>F)'[[1]]))
+    )
+  } else if (effect == 'B') { # B (second main effect)
+    tibble(
+      df_n = aov[[2]][[1]]$Df[1],
+      df_d = aov [[2]][[1]]$Df[3],
+      f    = sprintf("%.2f", aov[[2]][[1]]$'F value'[[1]]),
+      p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", aov[[2]][[1]]$'Pr(>F)'[[1]]))
+    )
+  } else if (effect == 'A*B') { # A*B
+    tibble(
+      df_n = aov[[2]][[1]]$Df[1],
+      df_d = aov [[2]][[1]]$Df[3],
+      f    = sprintf("%.2f", aov[[2]][[1]]$'F value'[[2]]),
+      p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", aov[[2]][[1]]$'Pr(>F)'[[2]]))
+    )
+  } else { # 1-way ANOVA
+    tibble(
+      df_n = aov[[1]]$Df[1],
+      df_d = aov [[1]]$Df[2],
+      f    = sprintf("%.2f", aov[[1]]$'F value'[[1]]),
+      p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", aov[[1]]$'Pr(>F)'[[1]]))
+    )
+  }
 }
 
 #' Report aov.
@@ -632,8 +657,8 @@ extract_aov <- function(aov) {
 #' @export
 #' @return Character
 #'
-report_aov <- function(aov) {
-  t <- extract_aov(aov)
+report_aov <- function(aov, effect='1way') {
+  t <- extract_aov(aov, effect)
   paste0('\\textit{F}(', t$df_n, ', ', t$df_d, ') = ', t$f, ', \\textit{p} = ', t$p)
 }
 
