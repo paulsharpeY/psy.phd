@@ -13,18 +13,16 @@ globalVariables(c('..scaled..'))
 #' @param sd standard deviation
 #' @param n1 n in group 1
 #' @param n2 n in group 2
-#' @param design description of study design
 #' @importFrom rlang .data
 #' @export
 #' @return tibble
-set_effect <- function(id, study, m1, m2, sd, n1, n2, design) {
+set_effect <- function(id, study, m1, m2, sd, n1, n2) {
   df <- tibble(
     id     = id,
     mean1  = m1,
     mean2  = m2,
     study  = study$publication,
-    d      = d(m1, m2, sd), ci = 0, l = 0, u = 0,
-    design = factor(design)
+    d      = d(m1, m2, sd), ci = 0, l = 0, u = 0
   )
   df <- df %>% mutate(ci = d_ci95(d, n1, n2)) %>% mutate(l = d - .data$ci, u = d + .data$ci)
 }
@@ -141,22 +139,26 @@ exclude_rt <- function(df, fast=50, slow=3) {
 #' @importFrom dplyr left_join mutate rename select
 #' @importFrom magrittr %>%
 #' @importFrom rlang .data
-#' @importFrom tidyr spread
+#' @importFrom tidyr pivot_wider
 #' @export
 #' @return Data frame
 process_demographics_survey <- function(survey, participants, by = 'token', extra=F) {
-  columns <- c('p', 'condition', 'age', 'sex', 'hand')
   demographics <- survey %>%
-    spread(key = .data$question, value = .data$value) %>%
+    # DEBT: Some data has multiple values for hand which needs, err, handling
+    filter(question != 'Which is your dominant hand?') %>%
+    pivot_wider(names_from = .data$question, values_from = .data$value) %>%
     rename(
       age = .data$`How old are you (in years)?`,
       sex = .data$`What was your assigned sex at birth?`,
-      hand = .data$`Which is your dominant hand?`
+#      hand = .data$`Which is your dominant hand?`
     ) %>%
     mutate(age = as.numeric(.data$age)) %>%
     mutate(sex = replace(.data$sex, .data$sex == 0, 'M')) %>%
     mutate(sex = replace(.data$sex, .data$sex == 1, 'F')) %>%
     mutate(sex = as.factor(.data$sex))
+
+  # always return these columns
+  columns = c('p', 'condition', 'age', 'sex')
 
   # extra demographics survey questions
   if (extra) {
@@ -587,6 +589,52 @@ apa_bayes_t <- function(bayes) {
   bf    <- bayes[1,1]
   if (bf > 100) { bf <- round(bf,0) } else { bf <- sprintf("%.2f", round(bf,2)) }
   paste0('$BF$ = ', prettyNum(bf, big.mark = ',', trim = TRUE))
+}
+
+#' Format Bayes Factor.
+#'
+#' Format Bayes Factor.
+#'
+#' @param bf Bayes Factor object
+#' @export
+#' @return Character
+#'
+format_bf <- function(bf) {
+  bf     <- as.data.frame(bf)
+  result <- bf[1,1]
+  if (result > 100) { result <- round(result,0) } else { result <- sprintf("%.2f", round(result,2)) }
+  prettyNum(result, big.mark = ',', trim = TRUE)
+}
+
+#' Extract numbers from aov object.
+#'
+#' Extract numbers from aov object.
+#'
+#' @param aov aov object
+#' @export
+#' @return tibble
+#'
+extract_aov <- function(aov) {
+  aov <- summary(aov)
+  tibble(
+    df_n = aov[[1]]$Df[1],
+    df_d = aov [[1]]$Df[2],
+    f    = sprintf("%.2f", aov[[1]]$'F value'[[1]]),
+    p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", aov[[1]]$'Pr(>F)'[[1]]))
+  )
+}
+
+#' Report aov.
+#'
+#' Report aov.
+#'
+#' @param aov aov object
+#' @export
+#' @return Character
+#'
+report_aov <- function(aov) {
+  t <- extract_aov(aov)
+  paste0('\\textit{F}(', t$df_n, ', ', t$df_d, ') = ', t$f, ', \\textit{p} = ', t$p)
 }
 
 #' Save frequentist and Baysian t-tests and Cohen's d for T1 and T2|T1
