@@ -4,12 +4,10 @@
 \alias{set_effect}
 \title{Set effect size for a study}
 \usage{
-set_effect(id, study, m1, m2, sd, n1, n2, design)
+set_effect(id, data, m1, m2, sd, n1, n2)
 }
 \arguments{
 \item{id}{identifier for result}
-
-\item{study}{data frame with publication column}
 
 \item{m1}{mean for group 1}
 
@@ -21,7 +19,7 @@ set_effect(id, study, m1, m2, sd, n1, n2, design)
 
 \item{n2}{n in group 2}
 
-\item{design}{description of study design}
+\item{study}{data frame with publication column}
 }
 \value{
 tibble

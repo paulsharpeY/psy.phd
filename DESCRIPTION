@@ -11,11 +11,13 @@ LazyData: true
 Depends: R (>= 3.4.0)
 Imports:
   BayesFactor,
+  brms,
   dplyr,
   effsize,
   expfactory,
   forcats,
   ggplot2,
+  ggridges,
   kableExtra,
   magrittr,
   psych,
@@ -24,6 +26,7 @@ Imports:
   stats,
   stringr,
   tibble,
+  tidybayes,
   tidyr,
   utils
 RoxygenNote: 7.1.1

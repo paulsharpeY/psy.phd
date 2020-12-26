@@ -16,15 +16,21 @@ globalVariables(c('..scaled..'))
 #' @importFrom rlang .data
 #' @export
 #' @return tibble
-set_effect <- function(id, study, m1, m2, sd, n1, n2) {
+set_effect <- function(id, data, m1, m2, sd, n1, n2) {
   df <- tibble(
     id     = id,
     mean1  = m1,
     mean2  = m2,
-    study  = study$publication,
+    study  = data$publication,
     d      = d(m1, m2, sd), ci = 0, l = 0, u = 0
   )
-  df <- df %>% mutate(ci = d_ci95(d, n1, n2)) %>% mutate(l = d - .data$ci, u = d + .data$ci)
+  df <- df %>%
+    mutate(ci = d_ci95(d, n1, n2)) %>%
+    mutate(
+      l     = d - .data$ci,
+      u     = d + .data$ci,
+      group = data$group
+    )
 }
 
 #' Convert 95% confidence interval to standard error
@@ -959,4 +965,136 @@ ant_scores <- function(df) {
   # arrange for plot facets to be LtR: Alerting, Orienting, Conflict
   result$var <- fct_relevel(result$var, 'conflict', after = Inf)
   return(result)
+}
+
+#' Generate a forest plot from a brms model
+#'
+#' Generate a forest plot from a brms model.
+#'
+#' @param df Data frame
+#' @param subgroup String
+#' @param var String
+#' @param xlab String
+#' @importFrom brms brm get_prior hypothesis
+#' @importFrom dplyr bind_rows filter mutate select
+#' @importFrom ggplot2 geom_density geom_text geom_vline ggplot ggsave theme_bw xlab
+#' @importFrom ggridges geom_density_ridges
+#' @importFrom magrittr %>%
+#' @importFrom rlang .data
+#' @importFrom stringr str_replace
+#' @importFrom tidybayes geom_pointintervalh mean_qi spread_draws
+#' @export
+#' @return ggplot
+#'
+forest_bayes <- function(df, subgroup, var, xlab = 'Standardised Mean Difference') {
+  # calculate SEM from CI
+  df <- df %>%
+    filter(score == var & group == subgroup) %>%
+    mutate(se = ci95_to_se(u, l), study = factor(study))
+
+  # this shows you the default priors
+  get_prior(d | se(se) ~ 1 + (1 | study), data=df)
+
+  df$study <- str_replace(df$study, ",", "")  # remove commas in study names
+  # to rebuild model delete cached file var'-rem'
+  rem <- brm(
+    d | se(se) ~ 1 + (1 | study),
+    data = df,
+    chains=8, iter=1e4, # FIXME iter=50e4 or 10e4 (Ben: 20e4)
+    file = paste(subgroup, var, 'rem', sep = '-')
+  )
+
+  # Vuorre also used control=list(adapt_delta = .99). What does it do?
+
+  # extract the posterior samples...
+  posterior_samples <- rem %>% as.data.frame()
+
+  # this dataframe has one column per parameter in the model
+  # (inluding the random effects, so you get each study's divergence from the mean too)
+  posterior_samples %>% names
+
+  # posterior credible interval
+  posterior_samples %>% select(b_Intercept) %>% mean_qi()
+
+  # posterior plot
+  posterior_samples %>%
+    ggplot(aes(b_Intercept)) +
+    geom_density() + xlab("Pooled effect size (posterior density)")
+
+  # test of the hypothesis that the pooled effect is larger than .3 or smaller than -.3
+  # the Evid.Ratio here is a BayesFactor so we have reasonable evidence against.
+  hypothesis(rem, "abs(Intercept)>.3")
+
+  # or calculate the other way. BF=4 that the effect is smaller than < .3, even with so few studies
+  hypothesis(rem, "abs(Intercept)<.3")
+
+  # Forest plot
+  # Based on https://vuorre.netlify.com/post/2017/01/19/better-forest-plots-from-meta-analytic-models-estimated-with-brms/
+  # Don't use brmstools::forest() as brmstools is deprecated
+  # This is from https://github.com/mvuorre/brmstools
+
+  # For an explanation of tidybayes::spread_draws(), refer to http://mjskay.github.io/tidybayes/articles/tidy-brms.html
+  # Study-specific effects are deviations + average
+  out_r <- spread_draws(rem, r_study[study, term], b_Intercept) %>%
+    mutate(b_Intercept = r_study + b_Intercept) %>%
+    mutate(study = str_replace_all(study, "\\.\\.", "."))
+
+  # add study type for faceting
+  # type <- studies %>%
+  #   select(publication, type) %>%
+  #   mutate(study = str_replace_all(publication, "[, ]", ".")) %>%
+  #   mutate(study = str_replace_all(study, "\\.\\.", ".")) %>%
+  #   select(-publication)
+
+  #out_r <- left_join(out_r, type, by='study')
+
+  # Average effect
+  out_f <- spread_draws(rem, b_Intercept) %>%
+    mutate(study = "Average")
+  # Combine average and study-specific effects' data frames
+  out_all <- bind_rows(out_r, out_f) %>%
+    ungroup() %>%
+    mutate(study = fct_relevel(study, "Average")) # put Average effect at bottom of the forest plot
+  # Data frame of summary numbers
+  out_all_sum <- group_by(out_all, study) %>% mean_qi(b_Intercept)
+  #  out_all_sum <- left_join(out_all_sum, type, by='study')
+
+  # tidy study names
+  #out_r <- out_r %>% mutate(study = recode(study, !!!study.recode))
+  #out_all_sum <- out_all_sum %>% mutate(study = recode(study, !!!study.recode))
+  #  out_all <- out_all %>% mutate(study = recode(study, !!!study.recode))
+
+  # FIXME: average by group for RCT and CT
+  #  out_all_sum <- out_all_sum %>% filter(study != 'Average')
+  #  out_all <- out_all %>% filter(study != 'Average')
+
+  #> Warning: unnest() has a new interface. See ?unnest for details.
+  #> Try `cols = c(.lower, .upper)`, with `mutate()` needed
+  # Draw plot
+  forest <- out_all %>%
+    ggplot(aes(b_Intercept, study)) +
+    geom_density_ridges(
+      rel_min_height = 0.01,
+      col = NA,
+      scale = 1
+    ) +
+    geom_pointintervalh(
+      data = out_all_sum, size = 1
+    ) +
+    geom_text(
+      data = mutate_if(out_all_sum, is.numeric, round, 2),
+      # Use glue package to combine strings
+      aes(label = glue::glue("{b_Intercept} [{.lower}, {.upper}]"), x = Inf),
+      hjust = "inward"
+    ) +
+    geom_vline(xintercept = 0) +
+    #    facet_grid(type ~ ., scales = 'free') +
+    xlab(xlab) +
+    theme_bw()
+
+  # save plot
+  ggsave(filename = paste0('figures/', subgroup, '_', var, '_forest.pdf'), plot = forest,
+         units = "in", width = 8.27, height = 11.69)
+
+  return(forest)
 }
