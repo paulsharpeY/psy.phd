@@ -617,41 +617,59 @@ format_bf <- function(bf) {
 #' Extract numbers from aov object.
 #'
 #' @param aov aov object
+#' @param design string
+#' @param effect string
 #' @export
 #' @return tibble
 #'
-extract_aov <- function(aov, effect='1way') {
+extract_aov <- function(aov, design='mixed', effect='1way') {
   aov <- summary(aov)
 
+  # 1-way ANOVA
+  if (effect == '1way') {
+    return(
+      tibble(
+        df_n = aov[[1]]$Df[1],
+        df_d = aov [[1]]$Df[2],
+        f    = sprintf("%.2f", aov[[1]]$'F value'[[1]]),
+        p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", aov[[1]]$'Pr(>F)'[[1]]))
+      )
+    )
+  }
+
   # 2 x 2 ANOVA
-  if (effect == 'A') {        # A (first main effect)
-    tibble(
-      df_n = aov[[1]][[1]]$Df[1],
-      df_d = aov [[1]][[1]]$Df[2],
-      f    = sprintf("%.2f", aov[[1]][[1]]$'F value'[[1]]),
-      p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", aov[[1]][[1]]$'Pr(>F)'[[1]]))
-    )
-  } else if (effect == 'B') { # B (second main effect)
-    tibble(
-      df_n = aov[[2]][[1]]$Df[1],
-      df_d = aov [[2]][[1]]$Df[3],
-      f    = sprintf("%.2f", aov[[2]][[1]]$'F value'[[1]]),
-      p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", aov[[2]][[1]]$'Pr(>F)'[[1]]))
-    )
-  } else if (effect == 'A*B') { # A*B
-    tibble(
-      df_n = aov[[2]][[1]]$Df[1],
-      df_d = aov [[2]][[1]]$Df[3],
-      f    = sprintf("%.2f", aov[[2]][[1]]$'F value'[[2]]),
-      p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", aov[[2]][[1]]$'Pr(>F)'[[2]]))
-    )
-  } else { # 1-way ANOVA
-    tibble(
-      df_n = aov[[1]]$Df[1],
-      df_d = aov [[1]]$Df[2],
-      f    = sprintf("%.2f", aov[[1]]$'F value'[[1]]),
-      p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", aov[[1]]$'Pr(>F)'[[1]]))
-    )
+  if (design == 'mixed') {
+    if (effect == 'A') {        # A (first main effect)
+      tibble(
+        df_n = aov[[1]][[1]]$Df[1],
+        df_d = aov [[1]][[1]]$Df[2],
+        f    = sprintf("%.2f", aov[[1]][[1]]$'F value'[[1]]),
+        p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", aov[[1]][[1]]$'Pr(>F)'[[1]]))
+      )
+    } else if (effect == 'B') { # B (second main effect)
+      tibble(
+        df_n = aov[[2]][[1]]$Df[1],
+        df_d = aov [[2]][[1]]$Df[3],
+        f    = sprintf("%.2f", aov[[2]][[1]]$'F value'[[1]]),
+        p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", aov[[2]][[1]]$'Pr(>F)'[[1]]))
+      )
+    } else if (effect == 'A*B') { # A*B
+      tibble(
+        df_n = aov[[2]][[1]]$Df[1],
+        df_d = aov [[2]][[1]]$Df[3],
+        f    = sprintf("%.2f", aov[[2]][[1]]$'F value'[[2]]),
+        p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", aov[[2]][[1]]$'Pr(>F)'[[2]]))
+      )
+    }
+  } else { # between
+    if (effect == 'A*B') { # A*B
+      tibble(
+        df_n = aov[[1]][[1]]$Df[1],
+        df_d = aov [[1]][[1]]$Df[3],
+        f    = sprintf("%.2f", aov[[1]][[1]]$'F value'[[3]]),
+        p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", aov[[1]][[1]]$'Pr(>F)'[[3]]))
+      )
+    }
   }
 }
 
@@ -663,9 +681,25 @@ extract_aov <- function(aov, effect='1way') {
 #' @export
 #' @return Character
 #'
-report_aov <- function(aov, effect='1way') {
-  t <- extract_aov(aov, effect)
-  paste0('\\textit{F}(', t$df_n, ', ', t$df_d, ') = ', t$f, ', \\textit{p} = ', t$p)
+report_aov <- function(aov, design='mixed', effect='1way') {
+  t <- extract_aov(aov, design, effect)
+  if (as.numeric(t$p) < .001) {
+    paste0('\\textit{F}(', t$df_n, ', ', t$df_d, ') = ', t$f, ', \\textit{p} < .001')
+  } else {
+    paste0('\\textit{F}(', t$df_n, ', ', t$df_d, ') = ', t$f, ', \\textit{p} = ', t$p)
+  }
+}
+
+#' Report t test.
+#'
+#' Report t test.
+#'
+#' @param t htest object
+#' @export
+#' @return Character
+#'
+report_t <- function(t) {
+  paste0('\\textit{t}(', sprintf("%.2f", t$parameter), ') = ', sprintf("%.2f", t$statistic), ', \\textit{p} = ', sprintf("%.3f", t$p.value))
 }
 
 #' Save frequentist and Baysian t-tests and Cohen's d for T1 and T2|T1
@@ -971,11 +1005,8 @@ ant_scores <- function(df) {
 #'
 #' Generate a forest plot from a brms model.
 #'
-#' @param df Data frame
-#' @param subgroup String
-#' @param var String
+#' @param rem brms model
 #' @param xlab String
-#' @importFrom brms brm get_prior hypothesis
 #' @importFrom dplyr bind_rows filter mutate select
 #' @importFrom ggplot2 geom_density geom_text geom_vline ggplot ggsave theme_bw xlab
 #' @importFrom ggridges geom_density_ridges
@@ -986,52 +1017,10 @@ ant_scores <- function(df) {
 #' @export
 #' @return ggplot
 #'
-forest_bayes <- function(df, subgroup, var, xlab = 'Standardised Mean Difference') {
-  # calculate SEM from CI
-  df <- df %>%
-    filter(score == var & group == subgroup) %>%
-    mutate(se = ci95_to_se(u, l), study = factor(study))
-
-  # this shows you the default priors
-  get_prior(d | se(se) ~ 1 + (1 | study), data=df)
-
-  df$study <- str_replace(df$study, ",", "")  # remove commas in study names
-  # to rebuild model delete cached file var'-rem'
-  rem <- brm(
-    d | se(se) ~ 1 + (1 | study),
-    data = df,
-    chains=8, iter=1e4, # FIXME iter=50e4 or 10e4 (Ben: 20e4)
-    file = paste(subgroup, var, 'rem', sep = '-')
-  )
-
-  # Vuorre also used control=list(adapt_delta = .99). What does it do?
-
-  # extract the posterior samples...
-  posterior_samples <- rem %>% as.data.frame()
-
-  # this dataframe has one column per parameter in the model
-  # (inluding the random effects, so you get each study's divergence from the mean too)
-  posterior_samples %>% names
-
-  # posterior credible interval
-  posterior_samples %>% select(b_Intercept) %>% mean_qi()
-
-  # posterior plot
-  posterior_samples %>%
-    ggplot(aes(b_Intercept)) +
-    geom_density() + xlab("Pooled effect size (posterior density)")
-
-  # test of the hypothesis that the pooled effect is larger than .3 or smaller than -.3
-  # the Evid.Ratio here is a BayesFactor so we have reasonable evidence against.
-  hypothesis(rem, "abs(Intercept)>.3")
-
-  # or calculate the other way. BF=4 that the effect is smaller than < .3, even with so few studies
-  hypothesis(rem, "abs(Intercept)<.3")
-
-  # Forest plot
-  # Based on https://vuorre.netlify.com/post/2017/01/19/better-forest-plots-from-meta-analytic-models-estimated-with-brms/
-  # Don't use brmstools::forest() as brmstools is deprecated
-  # This is from https://github.com/mvuorre/brmstools
+forest_bayes <- function(rem, xlab = 'Standardised Mean Difference') {
+# Based on https://vuorre.netlify.com/post/2017/01/19/better-forest-plots-from-meta-analytic-models-estimated-with-brms/
+# Don't use brmstools::forest() as brmstools is deprecated
+# This is from https://github.com/mvuorre/brmstools
 
   # For an explanation of tidybayes::spread_draws(), refer to http://mjskay.github.io/tidybayes/articles/tidy-brms.html
   # Study-specific effects are deviations + average
@@ -1091,10 +1080,6 @@ forest_bayes <- function(df, subgroup, var, xlab = 'Standardised Mean Difference
     #    facet_grid(type ~ ., scales = 'free') +
     xlab(xlab) +
     theme_bw()
-
-  # save plot
-  ggsave(filename = paste0('figures/', subgroup, '_', var, '_forest.pdf'), plot = forest,
-         units = "in", width = 8.27, height = 11.69)
 
   return(forest)
 }

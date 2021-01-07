@@ -4,14 +4,10 @@
 \alias{forest_bayes}
 \title{Generate a forest plot from a brms model}
 \usage{
-forest_bayes(df, subgroup, var, xlab = "Standardised Mean Difference")
+forest_bayes(rem, xlab = "Standardised Mean Difference")
 }
 \arguments{
-\item{df}{Data frame}
-
-\item{subgroup}{String}
-
-\item{var}{String}
+\item{rem}{brms model}
 
 \item{xlab}{String}
 }

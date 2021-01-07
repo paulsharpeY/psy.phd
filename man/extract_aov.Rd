@@ -4,10 +4,14 @@
 \alias{extract_aov}
 \title{Extract numbers from aov object.}
 \usage{
-extract_aov(aov, effect = "1way")
+extract_aov(aov, design = "mixed", effect = "1way")
 }
 \arguments{
 \item{aov}{aov object}
+
+\item{design}{string}
+
+\item{effect}{string}
 }
 \value{
 tibble

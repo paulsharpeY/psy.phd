@@ -4,7 +4,7 @@
 \alias{report_aov}
 \title{Report aov.}
 \usage{
-report_aov(aov, effect = "1way")
+report_aov(aov, design = "mixed", effect = "1way")
 }
 \arguments{
 \item{aov}{aov object}
