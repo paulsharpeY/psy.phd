@@ -8,6 +8,10 @@ report_aov(aov, design = "mixed", effect = "1way")
 }
 \arguments{
 \item{aov}{aov object}
+
+\item{design}{string}
+
+\item{effect}{string}
 }
 \value{
 Character

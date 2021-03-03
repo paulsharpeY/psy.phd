@@ -678,6 +678,8 @@ extract_aov <- function(aov, design='mixed', effect='1way') {
 #' Report aov.
 #'
 #' @param aov aov object
+#' @param design string
+#' @param effect string
 #' @export
 #' @return Character
 #'
@@ -687,6 +689,23 @@ report_aov <- function(aov, design='mixed', effect='1way') {
     paste0('\\textit{F}(', t$df_n, ', ', t$df_d, ') = ', t$f, ', \\textit{p} < .001')
   } else {
     paste0('\\textit{F}(', t$df_n, ', ', t$df_d, ') = ', t$f, ', \\textit{p} = ', t$p)
+  }
+}
+
+#' Report chisq.
+#'
+#' Report chisq.
+#'
+#' @param chisq chisq object
+#' @export
+#' @return Character
+#'
+report_chisq <- function(chisq) {
+  n <- chisq$observed %>% as.data.frame() %>% select(Freq) %>% sum()
+  if (as.numeric(chisq$p.value) < .001) {
+    paste0('\\textit{$\\chi^2$}(', chisq$parameter, ', \\textit{N} = ', n, ') = ', sprintf("%.2f", chisq$statistic), ', \\textit{p} < .001')
+  } else {
+    paste0('\\textit{$\\chi^2$}(', chisq$parameter, ', \\textit{N} = ', n, ') = ', sprintf("%.2f", chisq$statistic), ', \\textit{p} =', sprintf("%.3f", chisq$p.value))
   }
 }
 
@@ -999,6 +1018,44 @@ ant_scores <- function(df) {
   # arrange for plot facets to be LtR: Alerting, Orienting, Conflict
   result$var <- fct_relevel(result$var, 'conflict', after = Inf)
   return(result)
+}
+
+#' Generate a funnel plot
+#'
+#' Generate a funnel plot.
+#'
+#' @param data data frame
+#' @importFrom dplyr bind_rows filter mutate select
+#' @importFrom ggplot2 geom_point geom_function geom_hline geom_rect xlab ylab scale_linetype_discrete scale_x_reverse scale_y_continuous coord_flip theme_bw
+#' @importFrom rlang .data
+#' @export
+#' @return ggplot
+#'
+funnel_plot <- function(data) {
+  estimate <- with(data, fitted_smd[Study == 'pooled'])
+  meanll95 <- with(data, .lower[Study == 'pooled'])
+  meanul95 <- with(data, .upper[Study == 'pooled'])
+  se_max   <- with(data, se_max[Study == 'pooled'])
+  se_seq   <- data.frame(se = seq(0, se_max, .001))
+
+  data <- head(data, -1) # remove pooled row
+
+  p <- ggplot(aes(x = se, y = fitted_smd), data = data) +
+    geom_point(shape = 19, aes(colour = group)) +
+    geom_function(aes(linetype = '95% confidence interval'), fun = function(x) { x * 1.96 + estimate }, data = se_seq, inherit.aes = FALSE) +
+    geom_function(aes(linetype = '95% confidence interval'), fun=function(x) { x * -1.96 + estimate }, data = se_seq, inherit.aes = FALSE) +
+    geom_function(aes(linetype = '99% confidence interval'), fun = function(x) { x * 3.29 + estimate }, data = se_seq, inherit.aes = FALSE) +
+    geom_function(aes(linetype = '99% confidence interval'), fun=function(x) { x * -3.29 + estimate }, data = se_seq, inherit.aes = FALSE) +
+    xlab('Standard Error') + ylab('SMD') +
+    scale_linetype_discrete(name = "Standard Error") +
+    scale_x_reverse(limits = c(se_max, 0)) +
+    scale_y_continuous(breaks=seq(-1.25, 2, 0.25)) +
+    coord_flip() +
+    geom_hline(yintercept = estimate, colour = 'blue') +
+    geom_rect(aes(ymin = meanll95, ymax = meanul95, xmin = 0, xmax = Inf, fill='95% credible interval'), colour=NA, alpha = .05) +
+    scale_fill_manual('Pooled effect', values = 'gray', guide = guide_legend(override.aes = list(alpha = 1))) +
+    theme_bw()
+  return(p)
 }
 
 #' Generate a forest plot from a brms model
