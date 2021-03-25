@@ -1038,22 +1038,23 @@ funnel_plot <- function(data) {
   se_max   <- with(data, se_max[Study == 'pooled'])
   se_seq   <- data.frame(se = seq(0, se_max, .001))
 
-  data <- head(data, -1) # remove pooled row
+  data <- head(data, -1) %>% # remove pooled row
+    rename(Group = group)
 
   p <- ggplot(aes(x = se, y = fitted_smd), data = data) +
-    geom_point(shape = 19, aes(colour = group)) +
-    geom_function(aes(linetype = '95% confidence interval'), fun = function(x) { x * 1.96 + estimate }, data = se_seq, inherit.aes = FALSE) +
-    geom_function(aes(linetype = '95% confidence interval'), fun=function(x) { x * -1.96 + estimate }, data = se_seq, inherit.aes = FALSE) +
-    geom_function(aes(linetype = '99% confidence interval'), fun = function(x) { x * 3.29 + estimate }, data = se_seq, inherit.aes = FALSE) +
-    geom_function(aes(linetype = '99% confidence interval'), fun=function(x) { x * -3.29 + estimate }, data = se_seq, inherit.aes = FALSE) +
-    xlab('Standard Error') + ylab('SMD') +
-    scale_linetype_discrete(name = "Standard Error") +
+    geom_point(shape = 19, aes(colour = Group)) +
+    geom_rect(aes(ymin = meanll95, ymax = meanul95, xmin = 0, xmax = Inf, fill='95% credible interval'), colour=NA, alpha = .05) +
+    scale_fill_manual('Pooled effect', values = 'gray', guide = guide_legend(override.aes = list(alpha = 1))) +
+    geom_function(aes(linetype = '95%'), fun = function(x) { x * 1.96 + estimate }, data = se_seq, inherit.aes = FALSE) +
+    geom_function(aes(linetype = '95%'), fun=function(x) { x * -1.96 + estimate }, data = se_seq, inherit.aes = FALSE) +
+    geom_function(aes(linetype = '99%'), fun = function(x) { x * 3.29 + estimate }, data = se_seq, inherit.aes = FALSE) +
+    geom_function(aes(linetype = '99%'), fun=function(x) { x * -3.29 + estimate }, data = se_seq, inherit.aes = FALSE) +
+    xlab('Study Standard Error') + ylab('SMD') +
+    scale_linetype_discrete(name = "Absence of bias and heterogeneity") +
     scale_x_reverse(limits = c(se_max, 0)) +
     scale_y_continuous(breaks=seq(-1.25, 2, 0.25)) +
     coord_flip() +
     geom_hline(yintercept = estimate, colour = 'blue') +
-    geom_rect(aes(ymin = meanll95, ymax = meanul95, xmin = 0, xmax = Inf, fill='95% credible interval'), colour=NA, alpha = .05) +
-    scale_fill_manual('Pooled effect', values = 'gray', guide = guide_legend(override.aes = list(alpha = 1))) +
     theme_bw()
   return(p)
 }
