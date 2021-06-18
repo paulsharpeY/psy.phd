@@ -686,9 +686,9 @@ extract_aov <- function(aov, design='mixed', effect='1way') {
 report_aov <- function(aov, design='mixed', effect='1way') {
   t <- extract_aov(aov, design, effect)
   if (as.numeric(t$p) < .001) {
-    paste0('\\textit{F}(', t$df_n, ', ', t$df_d, ') = ', t$f, ', \\textit{p} < .001')
+    paste0('*F*(', t$df_n, ', ', t$df_d, ') = ', t$f, ', *p* < .001')
   } else {
-    paste0('\\textit{F}(', t$df_n, ', ', t$df_d, ') = ', t$f, ', \\textit{p} = ', t$p)
+    paste0('*F*(', t$df_n, ', ', t$df_d, ') = ', t$f, ', *p* = ', t$p)
   }
 }
 
@@ -703,9 +703,9 @@ report_aov <- function(aov, design='mixed', effect='1way') {
 report_chisq <- function(chisq) {
   n <- chisq$observed %>% as.data.frame() %>% select(Freq) %>% sum()
   if (as.numeric(chisq$p.value) < .001) {
-    paste0('\\textit{$\\chi^2$}(', chisq$parameter, ', \\textit{N} = ', n, ') = ', sprintf("%.2f", chisq$statistic), ', \\textit{p} < .001')
+    paste0('\\emph{$\\chi^2$}(', chisq$parameter, ', \\emph{N} = ', n, ') = ', sprintf("%.2f", chisq$statistic), ', \\emph{p} < .001')
   } else {
-    paste0('\\textit{$\\chi^2$}(', chisq$parameter, ', \\textit{N} = ', n, ') = ', sprintf("%.2f", chisq$statistic), ', \\textit{p} =', sprintf("%.3f", chisq$p.value))
+    paste0('\\emph{$\\chi^2$}(', chisq$parameter, ', \\emph{N} = ', n, ') = ', sprintf("%.2f", chisq$statistic), ', \\emph{p} =', sprintf("%.3f", chisq$p.value))
   }
 }
 
@@ -718,7 +718,7 @@ report_chisq <- function(chisq) {
 #' @return Character
 #'
 report_t <- function(t) {
-  paste0('\\textit{t}(', sprintf("%.2f", t$parameter), ') = ', sprintf("%.2f", t$statistic), ', \\textit{p} = ', sprintf("%.3f", t$p.value))
+  paste0('*t*(', sprintf("%.2f", t$parameter), ') = ', sprintf("%.2f", t$statistic), ', *p* = ', sprintf("%.3f", t$p.value))
 }
 
 #' Save frequentist and Baysian t-tests and Cohen's d for T1 and T2|T1
