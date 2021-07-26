@@ -692,6 +692,41 @@ report_aov <- function(aov, design='mixed', effect='1way') {
   }
 }
 
+#' Extract numbers from afex_aov object.
+#'
+#' Extract numbers from afex_aov object.
+#'
+#' @param afex_aov afex_aov object
+#' @param effect string
+#' @export
+#' @return tibble
+#'
+extract_rm_aov <- function(afex_aov, effect = 'condition') {
+  # For RM ANOVA, values are (probably Greenhouse-Geisser) corrected if sphericity violated
+  tibble(
+    df_n = sprintf("%.2f", afex_aov$anova_table[effect, 'num Df']),
+    df_d = sprintf("%.2f", afex_aov$anova_table[effect, 'den Df']),
+    f    = sprintf("%.2f", afex_aov$anova_table[effect, 'F']),
+    p    = sub("^(-?)0.", "\\1.", sprintf("%.3f", afex_aov$anova_table[effect, 'Pr(>F)']))
+  )
+}
+
+#' Report repeated measures aov.
+#'
+#' Report repeated measures aov.
+#'
+#' @param t tibble
+#' @export
+#' @return Character
+#'
+report_rm_aov <- function(t) {
+  if (as.numeric(t$p) < .001) {
+    paste0('*F*(', t$df_n, ', ', t$df_d, ') = ', t$f, ', *p* < .001')
+  } else {
+    paste0('*F*(', t$df_n, ', ', t$df_d, ') = ', t$f, ', *p* = ', t$p)
+  }
+}
+
 #' Report chisq.
 #'
 #' Report chisq.
